@@ -2,6 +2,7 @@ import { Job } from 'bullmq'
 import { SourceSyncJobData } from '@/lib/queue/jobs'
 import { syncDriveFolder } from '@/lib/integrations/google-drive/monitor'
 import { syncSharePointSite } from '@/lib/integrations/sharepoint/monitor'
+import { syncGmailMessages, buildDealSearchQuery } from '@/lib/integrations/gmail/monitor'
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -140,12 +141,46 @@ async function syncSharePoint(dealId: string, syncType: string) {
 
 async function syncGmail(dealId: string, syncType: string) {
     console.log(`  ✉️ Syncing Gmail (${syncType})`)
-    // Placeholder for Gmail API integration
-    // In production:
-    // - Fetch emails matching deal criteria
-    // - Create email records
-    // - Queue email processing jobs
-    return { synced: 0 }
+
+    // Get source connection
+    const { data: connection } = await supabase
+        .from('source_connections')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('source_type', 'gmail')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection) {
+        console.log('  ⚠️ No active Gmail connection found')
+        return { synced: 0 }
+    }
+
+    // Get search configuration from connection
+    const config = connection.configuration || {}
+    const keywords = config.keywords as string[] | undefined
+    const participants = config.participants as string[] | undefined
+    const afterDate = config.afterDate
+        ? new Date(config.afterDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Default: last 30 days
+
+    // Build search query
+    const searchQuery = buildDealSearchQuery(keywords, participants, afterDate)
+
+    // Sync Gmail messages
+    const result = await syncGmailMessages(
+        dealId,
+        searchQuery,
+        connection.access_token,
+        connection.refresh_token || undefined
+    )
+
+    return {
+        synced: result.newEmails,
+        newEmails: result.newEmails,
+        updatedEmails: result.updatedEmails,
+        messagesScanned: result.messagesScanned,
+    }
 }
 
 async function syncOutlook(dealId: string, syncType: string) {
