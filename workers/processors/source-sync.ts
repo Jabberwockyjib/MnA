@@ -3,6 +3,7 @@ import { SourceSyncJobData } from '@/lib/queue/jobs'
 import { syncDriveFolder } from '@/lib/integrations/google-drive/monitor'
 import { syncSharePointSite } from '@/lib/integrations/sharepoint/monitor'
 import { syncGmailMessages, buildDealSearchQuery } from '@/lib/integrations/gmail/monitor'
+import { syncOutlookMessages, buildDealFilterQuery } from '@/lib/integrations/outlook/monitor'
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -185,6 +186,48 @@ async function syncGmail(dealId: string, syncType: string) {
 
 async function syncOutlook(dealId: string, syncType: string) {
     console.log(`  ✉️ Syncing Outlook (${syncType})`)
-    // Placeholder for Outlook API integration
-    return { synced: 0 }
+
+    // Get source connection
+    const { data: connection } = await supabase
+        .from('source_connections')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('source_type', 'outlook')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection) {
+        console.log('  ⚠️ No active Outlook connection found')
+        return { synced: 0 }
+    }
+
+    // Get search configuration from connection
+    const config = connection.configuration || {}
+    const searchQuery = config.searchQuery as string | null
+    const participants = config.participants as string[] | undefined
+    const afterDate = config.afterDate
+        ? new Date(config.afterDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Default: last 30 days
+
+    // Build filter query if no search query provided
+    const filterQuery = searchQuery
+        ? null
+        : buildDealFilterQuery(participants, afterDate)
+
+    // Sync Outlook messages
+    const result = await syncOutlookMessages(
+        dealId,
+        searchQuery,
+        filterQuery,
+        connection.access_token,
+        connection.refresh_token || null,
+        connection.token_expires_at
+    )
+
+    return {
+        synced: result.newEmails,
+        newEmails: result.newEmails,
+        updatedEmails: result.updatedEmails,
+        messagesScanned: result.messagesScanned,
+    }
 }
