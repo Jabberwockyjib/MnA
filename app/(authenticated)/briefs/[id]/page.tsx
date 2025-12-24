@@ -93,20 +93,23 @@ export default async function BriefViewerPage({ params }: { params: { id: string
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-sm text-muted-foreground">By Workstream</h4>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {Object.entries(progress.workstreams).map(([name, value]) => (
-                                        <div key={name} className="space-y-1">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span>{name}</span>
-                                                <span className="font-semibold">{value}%</span>
+                                    {Object.entries(progress.workstreams).map(([name, value]) => {
+                                        const percentage = Number(value)
+                                        return (
+                                            <div key={name} className="space-y-1">
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span>{name}</span>
+                                                    <span className="font-semibold">{percentage}%</span>
+                                                </div>
+                                                <div className="w-full bg-muted rounded-full h-2">
+                                                    <div
+                                                        className="bg-primary/80 rounded-full h-2 transition-all"
+                                                        style={{ width: `${percentage}%` }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="w-full bg-muted rounded-full h-2">
-                                                <div
-                                                    className="bg-primary/80 rounded-full h-2 transition-all"
-                                                    style={{ width: `${value}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             </div>
                         </>
