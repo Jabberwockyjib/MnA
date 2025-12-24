@@ -50,7 +50,9 @@ export async function listMessages(
             maxResults,
         })
 
-        return response.data.messages || []
+        return (response.data.messages || []).filter((m): m is { id: string; threadId: string } =>
+            !!m.id && !!m.threadId
+        )
     } catch (error) {
         console.error('Error listing Gmail messages:', error)
         throw error
