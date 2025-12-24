@@ -12,6 +12,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Read-heavy, write-light UX: most users consume information
 - One deal done well: portfolio views are out of scope
 
+## Available MCP Servers
+
+This repository has access to the following MCP servers when working with Claude Code:
+
+### Context7 MCP
+- **Purpose**: Fetch up-to-date documentation for libraries and frameworks
+- **Usage**: Use `resolve-library-id` to find the correct library ID, then `get-library-docs` to retrieve documentation
+- **When to use**: When you need current documentation for Next.js, React, Supabase, Tailwind, or other dependencies
+
+### GitHub MCP
+- **Purpose**: Interact with GitHub repositories, issues, pull requests, and code search
+- **Key capabilities**:
+  - Search code across repositories
+  - Create/update issues and pull requests
+  - Read file contents from repositories
+  - Manage branches and commits
+  - Search repositories, users, and code
+- **When to use**: For GitHub operations, researching similar implementations, or working with remote repositories
+
+### Playwright MCP
+- **Purpose**: Browser automation and testing
+- **Key capabilities**:
+  - Navigate to URLs and interact with web pages
+  - Take screenshots and snapshots
+  - Fill forms and click elements
+  - Run Playwright code snippets
+  - Test web interfaces
+- **When to use**: For end-to-end testing, browser automation, or debugging UI issues
+
 ## Development Commands
 
 ```bash
