@@ -1,3 +1,8 @@
+// Load environment variables FIRST before any other imports
+import { config } from 'dotenv'
+config({ path: '.env.local' })
+config({ path: '.env' })
+
 import { Worker } from 'bullmq'
 import {
     redisConnection,

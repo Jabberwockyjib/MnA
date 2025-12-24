@@ -9,10 +9,17 @@ import { createClient } from '@supabase/supabase-js'
  * From originplan.md Section 5.2: Email Awareness
  */
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Lazy initialize Supabase client to ensure env vars are loaded
+let supabase: ReturnType<typeof createClient>
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+    }
+    return supabase
+}
 
 export interface OutlookMessage {
     id: string
@@ -171,7 +178,7 @@ export async function syncOutlookMessages(
         // Process each message
         for (const message of messages) {
             // Check if email exists in database
-            const { data: existingEmail } = await supabase
+            const { data: existingEmail } = await getSupabase()
                 .from('communications')
                 .select('id, updated_at')
                 .eq('source_id', message.id)
@@ -180,7 +187,7 @@ export async function syncOutlookMessages(
 
             if (!existingEmail) {
                 // New email - create record
-                const { data: newEmail, error } = await supabase
+                const { data: newEmail, error } = await getSupabase()
                     .from('communications')
                     .insert({
                         deal_id: dealId,

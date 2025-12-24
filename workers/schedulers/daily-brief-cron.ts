@@ -10,11 +10,17 @@ import { queueDailyBrief } from '@/lib/queue/jobs'
  * - Default time: 8:00 AM
  */
 
-// Supabase client for fetching active deals
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Lazy initialize Supabase client to ensure env vars are loaded
+let supabase: ReturnType<typeof createClient>
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+    }
+    return supabase
+}
 
 /**
  * Schedule daily briefs for all active deals
@@ -29,7 +35,7 @@ export function scheduleDailyBriefs() {
 
         try {
             // Fetch all active deals
-            const { data: deals, error } = await supabase
+            const { data: deals, error } = await getSupabase()
                 .from('deals')
                 .select('id, name')
                 .eq('status', 'active')
@@ -76,7 +82,7 @@ export function scheduleDailyBriefs() {
 export async function triggerDailyBriefsNow() {
     console.log('🔔 Manually triggering daily briefs...')
 
-    const { data: deals } = await supabase
+    const { data: deals } = await getSupabase()
         .from('deals')
         .select('id, name')
         .eq('status', 'active')

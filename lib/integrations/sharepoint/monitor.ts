@@ -9,10 +9,17 @@ import { createClient } from '@supabase/supabase-js'
  * From originplan.md Section 5.2
  */
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Lazy initialize Supabase client to ensure env vars are loaded
+let supabase: ReturnType<typeof createClient>
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+    }
+    return supabase
+}
 
 export interface SharePointFile {
     id: string
@@ -156,7 +163,7 @@ export async function syncSharePointSite(
             }
 
             // Check if document exists in database
-            const { data: existingDoc } = await supabase
+            const { data: existingDoc } = await getSupabase()
                 .from('documents')
                 .select('id, updated_at')
                 .eq('source_id', file.id)
@@ -165,7 +172,7 @@ export async function syncSharePointSite(
 
             if (!existingDoc) {
                 // New document - create record
-                const { data: newDoc, error } = await supabase
+                const { data: newDoc, error } = await getSupabase()
                     .from('documents')
                     .insert({
                         deal_id: dealId,
@@ -192,7 +199,7 @@ export async function syncSharePointSite(
 
                 if (spModified > dbModified) {
                     // Document updated
-                    await supabase
+                    await getSupabase()
                         .from('documents')
                         .update({
                             status: 'updated',

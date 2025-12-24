@@ -13,10 +13,17 @@ import { createClient } from '@supabase/supabase-js'
  * From originplan.md Section 5.2: Source Monitoring
  */
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Lazy initialize Supabase client to ensure env vars are loaded
+let supabase: ReturnType<typeof createClient>
+function getSupabase() {
+    if (!supabase) {
+        supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+    }
+    return supabase
+}
 
 export async function processSourceSync(job: Job<SourceSyncJobData>) {
     const { dealId, sourceType, syncType } = job.data
@@ -63,7 +70,7 @@ async function syncGoogleDrive(dealId: string, syncType: string) {
     console.log(`  📁 Syncing Google Drive (${syncType})`)
 
     // Get source connection
-    const { data: connection } = await supabase
+    const { data: connection } = await getSupabase()
         .from('source_connections')
         .select('*')
         .eq('deal_id', dealId)
@@ -101,7 +108,7 @@ async function syncSharePoint(dealId: string, syncType: string) {
     console.log(`  📁 Syncing SharePoint (${syncType})`)
 
     // Get source connection
-    const { data: connection } = await supabase
+    const { data: connection } = await getSupabase()
         .from('source_connections')
         .select('*')
         .eq('deal_id', dealId)
@@ -144,7 +151,7 @@ async function syncGmail(dealId: string, syncType: string) {
     console.log(`  ✉️ Syncing Gmail (${syncType})`)
 
     // Get source connection
-    const { data: connection } = await supabase
+    const { data: connection } = await getSupabase()
         .from('source_connections')
         .select('*')
         .eq('deal_id', dealId)
@@ -188,7 +195,7 @@ async function syncOutlook(dealId: string, syncType: string) {
     console.log(`  ✉️ Syncing Outlook (${syncType})`)
 
     // Get source connection
-    const { data: connection } = await supabase
+    const { data: connection } = await getSupabase()
         .from('source_connections')
         .select('*')
         .eq('deal_id', dealId)
