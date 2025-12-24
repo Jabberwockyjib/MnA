@@ -1,5 +1,7 @@
 import { Job } from 'bullmq'
 import { SourceSyncJobData } from '@/lib/queue/jobs'
+import { syncDriveFolder } from '@/lib/integrations/google-drive/monitor'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * Source Sync Worker
@@ -7,6 +9,11 @@ import { SourceSyncJobData } from '@/lib/queue/jobs'
  * Handles syncing from external sources
  * From originplan.md Section 5.2: Source Monitoring
  */
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function processSourceSync(job: Job<SourceSyncJobData>) {
     const { dealId, sourceType, syncType } = job.data
@@ -16,18 +23,19 @@ export async function processSourceSync(job: Job<SourceSyncJobData>) {
     try {
         await job.updateProgress(10)
 
+        let result
         switch (sourceType) {
             case 'gdrive':
-                await syncGoogleDrive(dealId, syncType)
+                result = await syncGoogleDrive(dealId, syncType)
                 break
             case 'sharepoint':
-                await syncSharePoint(dealId, syncType)
+                result = await syncSharePoint(dealId, syncType)
                 break
             case 'gmail':
-                await syncGmail(dealId, syncType)
+                result = await syncGmail(dealId, syncType)
                 break
             case 'outlook':
-                await syncOutlook(dealId, syncType)
+                result = await syncOutlook(dealId, syncType)
                 break
         }
 
@@ -40,6 +48,7 @@ export async function processSourceSync(job: Job<SourceSyncJobData>) {
             dealId,
             sourceType,
             syncType,
+            ...result,
         }
     } catch (error) {
         console.error(`❌ Source sync failed for ${sourceType}:`, error)
@@ -49,12 +58,40 @@ export async function processSourceSync(job: Job<SourceSyncJobData>) {
 
 async function syncGoogleDrive(dealId: string, syncType: string) {
     console.log(`  📁 Syncing Google Drive (${syncType})`)
-    // Placeholder for Google Drive API integration
-    // In production:
-    // - List files in monitored folders
-    // - Detect new/modified documents
-    // - Queue document processing jobs
-    return { synced: 0 }
+
+    // Get source connection
+    const { data: connection } = await supabase
+        .from('source_connections')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('source_type', 'gdrive')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection) {
+        console.log('  ⚠️ No active Google Drive connection found')
+        return { synced: 0 }
+    }
+
+    if (!connection.folder_id) {
+        console.log('  ⚠️ No folder ID configured')
+        return { synced: 0 }
+    }
+
+    // Sync the folder
+    const result = await syncDriveFolder(
+        dealId,
+        connection.folder_id,
+        connection.access_token,
+        connection.refresh_token || undefined
+    )
+
+    return {
+        synced: result.newDocuments + result.updatedDocuments,
+        newDocuments: result.newDocuments,
+        updatedDocuments: result.updatedDocuments,
+        filesScanned: result.filesScanned,
+    }
 }
 
 async function syncSharePoint(dealId: string, syncType: string) {
