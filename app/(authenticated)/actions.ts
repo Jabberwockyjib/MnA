@@ -441,3 +441,68 @@ export async function createMockBrief(dealId: string) {
     return { success: true, brief: data }
 }
 
+export async function generateAIBrief(dealId: string) {
+    try {
+        // Call the API route to generate brief
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/briefs/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ dealId }),
+        })
+
+        if (!response.ok) {
+            throw new Error('Failed to generate brief')
+        }
+
+        const result = await response.json()
+
+        revalidatePath('/briefs')
+        return { success: true, brief: result.brief }
+    } catch (error) {
+        console.error('AI brief generation error:', error)
+        return { error: 'Failed to generate AI brief' }
+    }
+}
+
+export async function summarizeDocumentWithAI(documentId: string) {
+    const supabase = await createClient()
+
+    try {
+        // Get document
+        const { data: doc } = await supabase
+            .from('documents')
+            .select('*')
+            .eq('id', documentId)
+            .single()
+
+        if (!doc) {
+            return { error: 'Document not found' }
+        }
+
+        // In a real implementation, you would:
+        // 1. Fetch actual document content from source (Drive/SharePoint)
+        // 2. Use summarizeDocument() from lib/ai/document-intelligence
+        // 3. Update the document with the summary
+
+        // For now, create a placeholder summary
+        const mockSummary = `AI-generated summary for ${doc.name}. This document contains important information relevant to the deal. Key points include terms, obligations, and timeline requirements that should be reviewed by the deal team.`
+
+        const { error } = await supabase
+            .from('documents')
+            .update({ summary: mockSummary })
+            .eq('id', documentId)
+
+        if (error) {
+            return { error: 'Failed to save summary' }
+        }
+
+        revalidatePath(`/documents/${documentId}`)
+        return { success: true, summary: mockSummary }
+    } catch (error) {
+        console.error('Summarization error:', error)
+        return { error: 'Failed to summarize document' }
+    }
+}
+
