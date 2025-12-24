@@ -1,6 +1,7 @@
 import { Job } from 'bullmq'
 import { SourceSyncJobData } from '@/lib/queue/jobs'
 import { syncDriveFolder } from '@/lib/integrations/google-drive/monitor'
+import { syncSharePointSite } from '@/lib/integrations/sharepoint/monitor'
 import { createClient } from '@supabase/supabase-js'
 
 /**
@@ -96,8 +97,45 @@ async function syncGoogleDrive(dealId: string, syncType: string) {
 
 async function syncSharePoint(dealId: string, syncType: string) {
     console.log(`  📁 Syncing SharePoint (${syncType})`)
-    // Placeholder for SharePoint API integration
-    return { synced: 0 }
+
+    // Get source connection
+    const { data: connection } = await supabase
+        .from('source_connections')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('source_type', 'sharepoint')
+        .eq('is_active', true)
+        .single()
+
+    if (!connection) {
+        console.log('  ⚠️ No active SharePoint connection found')
+        return { synced: 0 }
+    }
+
+    if (!connection.folder_id) {
+        console.log('  ⚠️ No site ID configured')
+        return { synced: 0 }
+    }
+
+    // Get drive ID from configuration if available
+    const driveId = connection.configuration?.driveId as string | undefined
+
+    // Sync the SharePoint site
+    const result = await syncSharePointSite(
+        dealId,
+        connection.folder_id, // folder_id stores the site ID for SharePoint
+        connection.access_token,
+        connection.refresh_token || null,
+        connection.token_expires_at,
+        driveId
+    )
+
+    return {
+        synced: result.newDocuments + result.updatedDocuments,
+        newDocuments: result.newDocuments,
+        updatedDocuments: result.updatedDocuments,
+        filesScanned: result.filesScanned,
+    }
 }
 
 async function syncGmail(dealId: string, syncType: string) {
