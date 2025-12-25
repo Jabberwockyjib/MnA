@@ -14,7 +14,7 @@ services:
       - name: rest-v1
         paths:
           - /rest/v1/
-        strip_path: false
+        strip_path: true
   - name: realtime
     url: http://realtime:4000
     routes:
