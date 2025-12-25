@@ -8,6 +8,8 @@ services:
       - "3005:3000"
     env_file:
       - .env
+    networks:
+      - mna_network
     develop:
       watch:
         - action: sync
@@ -23,6 +25,9 @@ services:
   # Database
   db:
     image: supabase/postgres:15.1.1.2
+    container_name: mna-db
+    networks:
+      - mna_network
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 10s
@@ -32,13 +37,18 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
     ports:
-      - "54322:5432"
+      - "54342:5432"
     volumes:
       - mna_db_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d/mna-migrations:ro
+      - ./supabase/docker-init/01-set-passwords.sh:/docker-entrypoint-initdb.d/migrations/99-set-passwords.sh:ro
 
   # Studio (Dashboard)
   studio:
     image: supabase/studio:latest
+    container_name: mna-studio
+    networks:
+      - mna_network
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:3000/api/profile || exit 1" ]
@@ -49,22 +59,27 @@ services:
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: http://localhost:8005
+      SUPABASE_PUBLIC_URL: http://localhost:8025
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
     ports:
-      - "54323:3000"
+      - "54343:3000"
     depends_on:
-      - db
-      - meta
+      db:
+        condition: service_healthy
+      meta:
+        condition: service_healthy
 
   # Kong (API Gateway)
   kong:
     image: kong:2.8.1
+    container_name: mna-kong
+    networks:
+      - mna_network
     restart: unless-stopped
     ports:
-      - "8005:8000"
-      - "8448:8443"
+      - "8025:8000"
+      - "8458:8443"
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
@@ -81,6 +96,11 @@ services:
   # GoTrue (Auth)
   auth:
     image: supabase/gotrue:v2.132.3
+    container_name: mna-auth
+    networks:
+      - mna_network
+    env_file:
+      - .env
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:9999/health || exit 1" ]
       interval: 10s
@@ -89,32 +109,46 @@ services:
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
-      GROTRUE_DB_DRIVER: postgres
+      API_EXTERNAL_URL: http://localhost:8025
+      GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_URI_ALLOW_LIST: "*"
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_Mailer_AUTOCONFIRM: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # PostgREST (API)
   rest:
     image: postgrest/postgrest:v12.0.2
+    container_name: mna-rest
+    networks:
+      - mna_network
+    env_file:
+      - .env
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
       PGRST_DB_SCHEMAS: public,storage,graphql_public
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
-      PGRST_DB_USE_LEGACY_GUCKS: "false"
+      PGRST_DB_USE_LEGACY_GUCS: "false"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # Realtime
   realtime:
     image: supabase/realtime:v2.25.22
+    container_name: mna-realtime
+    networks:
+      - mna_network
+    env_file:
+      - .env
     environment:
       PORT: 4000
       DB_HOST: db
@@ -126,11 +160,17 @@ services:
       SLOT_NAME: supabase_realtime_rls
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # Storage
   storage:
     image: supabase/storage-api:v1.0.3
+    container_name: mna-storage
+    networks:
+      - mna_network
+    env_file:
+      - .env
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
@@ -146,21 +186,34 @@ services:
     volumes:
       - mna_storage_data:/var/lib/storage
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # Meta (Postgres Management API)
   meta:
     image: supabase/postgres-meta:v0.80.0
+    container_name: mna-meta
+    networks:
+      - mna_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       PG_META_PORT: 8080
       PG_META_DB_HOST: db
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # Redis (Job Queue)
   redis:
     image: redis:7-alpine
+    container_name: mna-redis
+    networks:
+      - mna_network
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -178,6 +231,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: mna-worker
+    networks:
+      - mna_network
     command: npm run worker
     env_file:
       - .env
@@ -198,6 +254,10 @@ services:
           target: /app/lib
         - action: rebuild
           path: package.json
+
+networks:
+  mna_network:
+    driver: bridge
 
 volumes:
   mna_db_data:
