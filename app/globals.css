@@ -1,3 +1,6 @@
+/* Import Google Fonts - Financial Intelligence Terminal Typography */
+@import url('https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,8 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-serif: 'Spectral', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -25,6 +29,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -37,82 +42,86 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 12px;
+  --radius-4xl: 16px;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Market Close - Light Mode (for development/testing) */
+  --radius: 3px;
+  --background: #FAFAF8;
+  --foreground: #0F1419;
+  --card: #FFFFFF;
+  --card-foreground: #0F1419;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F1419;
+  --primary: #D4A574;
+  --primary-foreground: #0F1419;
+  --secondary: #1E3A5F;
+  --secondary-foreground: #F0EDE5;
+  --muted: #E8E6E1;
+  --muted-foreground: #6B7280;
+  --accent: #D4A574;
+  --accent-foreground: #0F1419;
+  --destructive: #DC2626;
+  --success: #059669;
+  --border: #D1CFC8;
+  --input: #D1CFC8;
+  --ring: #D4A574;
+  --chart-1: #D4A574;
+  --chart-2: #1E3A5F;
+  --chart-3: #059669;
+  --chart-4: #DC2626;
+  --chart-5: #6B7280;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F1419;
+  --sidebar-primary: #D4A574;
+  --sidebar-primary-foreground: #0F1419;
+  --sidebar-accent: #F5F5F3;
+  --sidebar-accent-foreground: #0F1419;
+  --sidebar-border: #D1CFC8;
+  --sidebar-ring: #D4A574;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Market Close - Dark Mode (Primary Theme) */
+  --background: #0F1419;
+  --foreground: #F0EDE5;
+  --card: #1A1F26;
+  --card-foreground: #F0EDE5;
+  --popover: #1A1F26;
+  --popover-foreground: #F0EDE5;
+  --primary: #D4A574;
+  --primary-foreground: #0F1419;
+  --secondary: #1E3A5F;
+  --secondary-foreground: #F0EDE5;
+  --muted: #2A2F36;
+  --muted-foreground: #9CA3AF;
+  --accent: #D4A574;
+  --accent-foreground: #0F1419;
+  --destructive: #DC2626;
+  --success: #059669;
+  --border: #2A2F36;
+  --input: #2A2F36;
+  --ring: #D4A574;
+  --chart-1: #D4A574;
+  --chart-2: #1E3A5F;
+  --chart-3: #059669;
+  --chart-4: #DC2626;
+  --chart-5: #6B7280;
+  --sidebar: #12171D;
+  --sidebar-foreground: #F0EDE5;
+  --sidebar-primary: #D4A574;
+  --sidebar-primary-foreground: #0F1419;
+  --sidebar-accent: #1A1F26;
+  --sidebar-accent-foreground: #F0EDE5;
+  --sidebar-border: #2A2F36;
+  --sidebar-ring: #D4A574;
 }
 
 @layer base {
@@ -120,6 +129,68 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
   }
+
+  /* Editorial Typography Hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-semibold tracking-tight;
+  }
+
+  /* Smooth transitions for theme elements */
+  * {
+    transition-property: background-color, border-color, color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Disable transitions on page load */
+  .preload * {
+    transition: none !important;
+  }
+}
+
+/* Custom Animation Keyframes */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Utility Classes */
+.animate-slide-in-up {
+  animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
 }
