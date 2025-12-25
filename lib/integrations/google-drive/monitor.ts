@@ -153,16 +153,16 @@ export async function syncDriveFolder(
             }
 
             // Check if document exists in database
-            const { data: existingDoc } = await getSupabase()
+            const { data: existingDoc } = (await getSupabase()
                 .from('documents')
                 .select('id, updated_at')
                 .eq('source_id', file.id)
                 .eq('deal_id', dealId)
-                .single()
+                .single()) as { data: any; error: any }
 
             if (!existingDoc) {
                 // New document - create record
-                const { data: newDoc, error } = await getSupabase()
+                const { data: newDoc, error } = (await getSupabase()
                     .from('documents')
                     .insert({
                         deal_id: dealId,
@@ -172,9 +172,9 @@ export async function syncDriveFolder(
                         source_type: 'gdrive',
                         status: 'new',
                         last_ingested_at: new Date().toISOString(),
-                    })
+                    } as any)
                     .select()
-                    .single()
+                    .single()) as { data: any; error: any }
 
                 if (!error && newDoc) {
                     newDocs++
@@ -189,6 +189,7 @@ export async function syncDriveFolder(
 
                 if (driveModified > dbModified) {
                     // Document updated
+                    // @ts-expect-error - Supabase types not generated for documents table
                     await getSupabase()
                         .from('documents')
                         .update({

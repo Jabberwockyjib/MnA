@@ -206,16 +206,16 @@ export async function syncGmailMessages(
             const message = await getMessage(accessToken, msgRef.id, refreshToken)
 
             // Check if email exists in database
-            const { data: existingEmail } = await getSupabase()
+            const { data: existingEmail } = (await getSupabase()
                 .from('communications')
                 .select('id, updated_at')
                 .eq('source_id', message.id)
                 .eq('deal_id', dealId)
-                .single()
+                .single()) as { data: any; error: any }
 
             if (!existingEmail) {
                 // New email - create record
-                const { data: newEmail, error } = await getSupabase()
+                const { data: newEmail, error } = (await getSupabase()
                     .from('communications')
                     .insert({
                         deal_id: dealId,
@@ -229,9 +229,9 @@ export async function syncGmailMessages(
                         source_type: 'gmail',
                         received_at: new Date(message.date).toISOString(),
                         status: 'new',
-                    })
+                    } as any)
                     .select()
-                    .single()
+                    .single()) as { data: any; error: any }
 
                 if (!error && newEmail) {
                     newEmails++
