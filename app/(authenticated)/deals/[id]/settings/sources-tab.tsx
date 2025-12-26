@@ -1,5 +1,7 @@
 'use client'
 
+import { DriveSourceConfig } from '@/components/integrations/drive-source-config'
+
 export function SourcesTab({ dealId }: { dealId: string }) {
   return (
     <div className="space-y-6">
@@ -7,7 +9,7 @@ export function SourcesTab({ dealId }: { dealId: string }) {
         Configure which Google Drive folders and Gmail labels to monitor for this deal.
       </p>
 
-      {/* Components will go here */}
+      <DriveSourceConfig dealId={dealId} />
     </div>
   )
 }
