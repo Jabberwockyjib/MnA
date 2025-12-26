@@ -1,0 +1,13 @@
+'use client'
+
+export function SourcesTab({ dealId }: { dealId: string }) {
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Configure which Google Drive folders and Gmail labels to monitor for this deal.
+      </p>
+
+      {/* Components will go here */}
+    </div>
+  )
+}
