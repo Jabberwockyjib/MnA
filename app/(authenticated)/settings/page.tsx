@@ -1,4 +1,5 @@
 import { Separator } from '@/components/ui/separator'
+import { GoogleConnectionCard } from '@/components/settings/google-connection-card'
 
 export default function SettingsPage() {
   return (
@@ -15,7 +16,7 @@ export default function SettingsPage() {
         <section>
           <h2 className="text-xl font-semibold mb-4">Integrations</h2>
           <div className="space-y-4">
-            {/* GoogleConnectionCard will go here */}
+            <GoogleConnectionCard />
           </div>
         </section>
       </div>
