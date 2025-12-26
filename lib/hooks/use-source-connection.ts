@@ -31,6 +31,7 @@ export function useSourceConnection(dealId: string, sourceType: 'gdrive' | 'gmai
 
   const [connection, setConnection] = useState<SourceConnection | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     async function fetchConnection() {
@@ -48,7 +49,9 @@ export function useSourceConnection(dealId: string, sourceType: 'gdrive' | 'gmai
     }
 
     fetchConnection()
-  }, [dealId, sourceType])
+  }, [dealId, sourceType, refreshTrigger])
 
-  return { connection, isLoading, refetch: () => window.location.reload() }
+  const refetch = () => setRefreshTrigger(prev => prev + 1)
+
+  return { connection, isLoading, refetch }
 }
