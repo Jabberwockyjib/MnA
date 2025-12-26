@@ -25,6 +25,22 @@ To enable Google Drive and Gmail integration, you'll need to obtain OAuth 2.0 cr
    - Google Drive API
    - Gmail API
 
+**Token Encryption Key:**
+Generate a secure encryption key for OAuth tokens:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Add the output to `.env.local`:
+```bash
+TOKEN_ENCRYPTION_KEY=<paste-64-character-hex-string-here>
+```
+
+**⚠️ Important:** This key must be exactly 64 hexadecimal characters and should never be committed to version control.
+
+For complete setup instructions, see [docs/google-oauth-setup.md](docs/google-oauth-setup.md).
+
 ### Running the Development Server
 
 First, run the development server:
