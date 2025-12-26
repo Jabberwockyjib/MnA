@@ -7,6 +7,10 @@ alter table deal_members disable row level security;
 alter table workstreams disable row level security;
 alter table documents disable row level security;
 alter table emails disable row level security;
+alter table if exists user_oauth_connections disable row level security;
+alter table if exists source_connections disable row level security;
+alter table if exists briefs disable row level security;
+alter table if exists communications disable row level security;
 
 -- 2. Decouple profiles from auth.users (to allow dev users without authing)
 alter table profiles drop constraint if exists profiles_id_fkey;

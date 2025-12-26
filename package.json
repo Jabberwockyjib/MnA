@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "worker": "tsx watch workers/index.ts",
-    "worker:prod": "node dist/workers/index.js"
+    "worker:prod": "node dist/workers/index.js",
+    "generate:secrets": "./scripts/generate-secrets.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

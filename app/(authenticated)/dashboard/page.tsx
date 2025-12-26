@@ -1,4 +1,5 @@
 
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CreateDealDialog } from '@/components/deals/create-deal-dialog'
@@ -8,11 +9,11 @@ import { DEV_USER_ID } from '@/lib/constants'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
-    // const { data: { user } } = await supabase.auth.getUser()
-    const user = { id: DEV_USER_ID }
+    const { data: { user } } = await supabase.auth.getUser()
+    // const user = { id: DEV_USER_ID }  // Dev mode disabled for OAuth testing
 
     if (!user) {
-        return <div>Please login</div>
+        redirect('/login')
     }
 
     // Fetch the most recent active deal for this user

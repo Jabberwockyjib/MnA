@@ -5,6 +5,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DEV_USER_ID } from '@/lib/constants'
 
+export async function logout() {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+    redirect('/login')
+}
+
 const DEFAULT_WORKSTREAMS = ['Legal', 'HR', 'Finance', 'IT', 'Ops']
 
 export async function createDeal(firstName: string) {

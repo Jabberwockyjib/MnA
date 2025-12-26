@@ -90,6 +90,7 @@ export default function LoginPage() {
                                 formAction={loginAsDev}
                                 variant="secondary"
                                 className="w-full h-11 font-mono text-xs"
+                                formNoValidate
                             >
                                 DEV MODE ACCESS
                             </Button>

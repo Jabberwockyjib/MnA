@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Inbox, Settings, FileText, Users, Activity } from "lucide-react"
+import { Home, Inbox, Settings, FileText, Users, Activity, LogOut } from "lucide-react"
 
 import {
     Sidebar,
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { logout } from "@/app/(authenticated)/actions"
 
 // Menu items.
 const items = [
@@ -52,12 +54,17 @@ import { useParams } from "next/navigation"
 export function AppSidebar() {
     const [workstreams, setWorkstreams] = useState<any[]>([])
     const [activeDeal, setActiveDeal] = useState<any>(null)
+    const [user, setUser] = useState<any>(null)
     const params = useParams()
     const supabase = createClient()
 
     useEffect(() => {
         async function fetchData() {
-            // In 'No Auth' mode, we just fetch the most recent deal
+            // Fetch current user
+            const { data: { user } } = await supabase.auth.getUser()
+            setUser(user)
+
+            // Fetch the most recent deal
             const { data: deals } = await supabase
                 .from('deals')
                 .select('*')
@@ -157,19 +164,28 @@ export function AppSidebar() {
 
             {/* Footer */}
             <SidebarFooter className="border-t-2 border-border">
-                <div className="p-4">
-                    <div className="flex items-center gap-3 px-2 py-2 rounded hover:bg-sidebar-accent transition-colors cursor-pointer">
+                <div className="p-4 space-y-3">
+                    <div className="flex items-center gap-3 px-2 py-2 rounded">
                         <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                             <AvatarImage src="" />
                             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                                DU
+                                {user?.email?.substring(0, 2).toUpperCase() || 'DU'}
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold truncate">Dev User</div>
+                            <div className="text-sm font-semibold truncate">{user?.email || 'Dev User'}</div>
                             <div className="text-xs text-muted-foreground font-mono">Administrator</div>
                         </div>
                     </div>
+                    <Button
+                        onClick={() => logout()}
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-primary/30 hover:border-primary hover:bg-primary/5"
+                    >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                    </Button>
                 </div>
             </SidebarFooter>
         </Sidebar>
