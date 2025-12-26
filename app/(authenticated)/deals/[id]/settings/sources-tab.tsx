@@ -1,6 +1,7 @@
 'use client'
 
 import { DriveSourceConfig } from '@/components/integrations/drive-source-config'
+import { GmailSourceConfig } from '@/components/integrations/gmail-source-config'
 
 export function SourcesTab({ dealId }: { dealId: string }) {
   return (
@@ -10,6 +11,7 @@ export function SourcesTab({ dealId }: { dealId: string }) {
       </p>
 
       <DriveSourceConfig dealId={dealId} />
+      <GmailSourceConfig dealId={dealId} />
     </div>
   )
 }
