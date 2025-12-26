@@ -2,6 +2,31 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Setup
+
+Before running the development server, you'll need to configure environment variables in `.env.local`:
+
+**Google OAuth Credentials:**
+To enable Google Drive and Gmail integration, you'll need to obtain OAuth 2.0 credentials:
+
+1. Visit [Google Cloud Console](https://console.cloud.google.com/)
+2. Navigate to **APIs & Services** → **Credentials**
+3. Click **Create Credentials** → **OAuth 2.0 Client ID**
+4. Configure the OAuth consent screen if prompted
+5. Set **Application type** to **Web application**
+6. Add authorized redirect URI: `http://localhost:3000/api/oauth/google/callback`
+7. Copy the **Client ID** and **Client Secret** to your `.env.local` file:
+   ```bash
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+8. Enable the following APIs in your Google Cloud Project:
+   - Google Drive API
+   - Gmail API
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
