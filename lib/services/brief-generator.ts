@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { detectBlockerInThread } from '@/lib/ai/email-intelligence'
 
 /**
@@ -50,7 +50,7 @@ interface BriefData {
  * Generate daily brief for a deal
  */
 export async function generateDailyBrief(dealId: string): Promise<BriefData> {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     // Fetch all data in parallel
     const [documents, emails, workstreams, previousBrief] = await Promise.all([
@@ -88,7 +88,7 @@ export async function generateDailyBrief(dealId: string): Promise<BriefData> {
  * Save generated brief to database
  */
 export async function saveBrief(dealId: string, briefData: BriefData) {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     const today = new Date().toISOString().split('T')[0]
 
@@ -115,7 +115,7 @@ export async function saveBrief(dealId: string, briefData: BriefData) {
 // Helper functions
 
 async function getDocuments(dealId: string) {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data } = await supabase
         .from('documents')
         .select('*, workstreams(*)')
@@ -124,7 +124,7 @@ async function getDocuments(dealId: string) {
 }
 
 async function getEmails(dealId: string) {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data } = await supabase
         .from('emails')
         .select('*')
@@ -134,7 +134,7 @@ async function getEmails(dealId: string) {
 }
 
 async function getWorkstreams(dealId: string) {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data } = await supabase
         .from('workstreams')
         .select('*')
@@ -143,7 +143,7 @@ async function getWorkstreams(dealId: string) {
 }
 
 async function getPreviousBrief(dealId: string) {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data } = await supabase
         .from('briefs')
         .select('*')

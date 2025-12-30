@@ -9,7 +9,7 @@
  * - If valid: returns decrypted access token
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { decryptToken, encryptToken } from '@/lib/crypto/token-encryption'
 import { refreshAccessToken } from './google-oauth'
 
@@ -36,7 +36,7 @@ export async function getValidAccessToken(
   }
 
   try {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     // Retrieve the user's OAuth connection
     const { data: conn, error } = await supabase
@@ -157,7 +157,7 @@ export async function markConnectionInactive(
   }
 
   try {
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     const { error } = await supabase
       .from('user_oauth_connections')

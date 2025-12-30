@@ -4,7 +4,8 @@ import { syncDriveFolder } from '@/lib/integrations/google-drive/monitor'
 import { syncSharePointSite } from '@/lib/integrations/sharepoint/monitor'
 import { syncGmailMessages, buildDealSearchQuery } from '@/lib/integrations/gmail/monitor'
 import { syncOutlookMessages, buildDealFilterQuery } from '@/lib/integrations/outlook/monitor'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { getValidAccessToken } from '@/lib/oauth/token-manager'
 
 /**
  * Source Sync Worker
@@ -13,16 +14,8 @@ import { createClient } from '@supabase/supabase-js'
  * From originplan.md Section 5.2: Source Monitoring
  */
 
-// Lazy initialize Supabase client to ensure env vars are loaded
-let supabase: ReturnType<typeof createClient>
 function getSupabase() {
-    if (!supabase) {
-        supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-    }
-    return supabase
+    return createServiceClient()
 }
 
 export async function processSourceSync(job: Job<SourceSyncJobData>) {
@@ -69,10 +62,13 @@ export async function processSourceSync(job: Job<SourceSyncJobData>) {
 async function syncGoogleDrive(dealId: string, syncType: string) {
     console.log(`  📁 Syncing Google Drive (${syncType})`)
 
-    // Get source connection
+    // Get source connection with linked OAuth connection
     const { data: connection } = await getSupabase()
         .from('source_connections')
-        .select('*')
+        .select(`
+            *,
+            user_oauth_connections!inner(user_id)
+        `)
         .eq('deal_id', dealId)
         .eq('source_type', 'gdrive')
         .eq('is_active', true)
@@ -83,17 +79,21 @@ async function syncGoogleDrive(dealId: string, syncType: string) {
         return { synced: 0 }
     }
 
-    if (!connection.folder_id) {
+    const folderId = connection.folder_id || connection.configuration?.folderId
+    if (!folderId) {
         console.log('  ⚠️ No folder ID configured')
         return { synced: 0 }
     }
 
+    // Get valid access token using token manager
+    const userId = connection.user_oauth_connections.user_id
+    const accessToken = await getValidAccessToken(userId, 'google')
+
     // Sync the folder
     const result = await syncDriveFolder(
         dealId,
-        connection.folder_id,
-        connection.access_token,
-        connection.refresh_token || undefined
+        folderId,
+        accessToken
     )
 
     return {
@@ -150,10 +150,13 @@ async function syncSharePoint(dealId: string, syncType: string) {
 async function syncGmail(dealId: string, syncType: string) {
     console.log(`  ✉️ Syncing Gmail (${syncType})`)
 
-    // Get source connection
+    // Get source connection with linked OAuth connection
     const { data: connection } = await getSupabase()
         .from('source_connections')
-        .select('*')
+        .select(`
+            *,
+            user_oauth_connections!inner(user_id)
+        `)
         .eq('deal_id', dealId)
         .eq('source_type', 'gmail')
         .eq('is_active', true)
@@ -164,23 +167,32 @@ async function syncGmail(dealId: string, syncType: string) {
         return { synced: 0 }
     }
 
+    // Get valid access token using token manager
+    const userId = connection.user_oauth_connections.user_id
+    const accessToken = await getValidAccessToken(userId, 'google')
+
     // Get search configuration from connection
     const config = connection.configuration || {}
+    const labelIds = config.labelIds as string[] | undefined
     const keywords = config.keywords as string[] | undefined
     const participants = config.participants as string[] | undefined
     const afterDate = config.afterDate
         ? new Date(config.afterDate as string)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Default: last 30 days
 
-    // Build search query
-    const searchQuery = buildDealSearchQuery(keywords, participants, afterDate)
+    // Build search query with label filter if configured
+    let searchQuery = buildDealSearchQuery(keywords, participants, afterDate)
+    if (labelIds && labelIds.length > 0) {
+        // Add label filter to query
+        const labelQuery = labelIds.map(id => `label:${id}`).join(' OR ')
+        searchQuery = searchQuery ? `(${searchQuery}) AND (${labelQuery})` : labelQuery
+    }
 
     // Sync Gmail messages
     const result = await syncGmailMessages(
         dealId,
         searchQuery,
-        connection.access_token,
-        connection.refresh_token || undefined
+        accessToken
     )
 
     return {
