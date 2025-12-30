@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createDealFromInput } from '@/app/(authenticated)/actions'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 export function CreateDealDialog({ trigger }: { trigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
@@ -28,7 +29,18 @@ export function CreateDealDialog({ trigger }: { trigger?: React.ReactNode }) {
         const formData = new FormData(event.currentTarget)
         const res = await createDealFromInput(formData)
 
+        if (res?.error) {
+            toast.error('Failed to create deal', {
+                description: res.error
+            })
+            setLoading(false)
+            return
+        }
+
         if (res?.success) {
+            toast.success('Deal created', {
+                description: 'Your new deal workspace is ready.'
+            })
             setOpen(false)
             router.refresh()
         }

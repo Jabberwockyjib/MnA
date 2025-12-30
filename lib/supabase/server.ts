@@ -5,8 +5,13 @@ import { cookies } from 'next/headers'
 export async function createClient() {
     const cookieStore = await cookies()
 
-    // Use internal URL for server-side requests from Docker
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!
+    // When running locally (npm run dev), use the public URL
+    // When running in Docker, use the internal URL (kong:8000)
+    // Detect Docker by checking if we can resolve 'kong' or if RUNNING_IN_DOCKER is set
+    const isRunningInDocker = process.env.RUNNING_IN_DOCKER === 'true'
+    const supabaseUrl = isRunningInDocker
+        ? (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!)
+        : process.env.NEXT_PUBLIC_SUPABASE_URL!
 
     return createServerClient(
         supabaseUrl,

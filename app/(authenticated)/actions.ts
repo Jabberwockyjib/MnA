@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DEV_USER_ID } from '@/lib/constants'
 
 export async function logout() {
     const supabase = await createClient()
@@ -16,10 +15,8 @@ const DEFAULT_WORKSTREAMS = ['Legal', 'HR', 'Finance', 'IT', 'Ops']
 export async function createDeal(firstName: string) {
     const supabase = await createClient()
 
-    // AUTH REMOVED FOR DEV
-    // const { data: { user } } = await supabase.auth.getUser()
-    // if (!user) { redirect('/login') }
-    const user = { id: DEV_USER_ID }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { redirect('/login') }
 
     // 1. Create Deal
     const { data: deal, error: dealError } = await supabase
@@ -74,13 +71,15 @@ export async function createDealFromInput(formData: FormData) {
     const name = formData.get('name') as string
 
     if (!name) {
-        throw new Error("Name is required")
+        return { error: "Name is required" }
     }
 
     const supabase = await createClient()
 
-    // AUTH REMOVED FOR DEV
-    const user = { id: DEV_USER_ID }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: "Not authenticated" }
+    }
 
     // 1. Create Deal
     const { data: deal, error: dealError } = await supabase

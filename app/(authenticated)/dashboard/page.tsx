@@ -1,16 +1,13 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CreateDealDialog } from '@/components/deals/create-deal-dialog'
 import { Button } from '@/components/ui/button'
 import { Plus, TrendingUp, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react'
-import { DEV_USER_ID } from '@/lib/constants'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    // const user = { id: DEV_USER_ID }  // Dev mode disabled for OAuth testing
 
     if (!user) {
         redirect('/login')

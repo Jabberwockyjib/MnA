@@ -1,5 +1,40 @@
 
 _format_version: "2.1"
+
+# Global CORS plugin for all services
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+        - HEAD
+      headers:
+        - Accept
+        - Accept-Version
+        - Accept-Profile
+        - Authorization
+        - Content-Length
+        - Content-Type
+        - Content-Profile
+        - Date
+        - Prefer
+        - X-Auth-Token
+        - X-Client-Info
+        - X-Supabase-Api-Version
+        - apikey
+      exposed_headers:
+        - Content-Length
+        - Content-Range
+      credentials: true
+      max_age: 3600
+
 services:
   - name: auth
     url: http://auth:9999
