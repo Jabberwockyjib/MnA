@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Inbox, Settings, FileText, Users, Activity, LogOut } from "lucide-react"
+import { Home, Inbox, Settings, FileText, Users, Activity, LogOut, Briefcase } from "lucide-react"
 
 import {
     Sidebar,
@@ -24,6 +24,11 @@ const items = [
         title: "Dashboard",
         url: "/dashboard",
         icon: Home,
+    },
+    {
+        title: "Briefs",
+        url: "/briefs",
+        icon: Briefcase,
     },
     {
         title: "Documents",

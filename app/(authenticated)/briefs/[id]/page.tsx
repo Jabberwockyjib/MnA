@@ -6,8 +6,9 @@ import { FileText, Calendar, TrendingUp, AlertCircle, Mail, FolderOpen, Clock } 
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-export default async function BriefViewerPage({ params }: { params: { id: string } }) {
-    const brief = await getBrief(params.id)
+export default async function BriefViewerPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
+    const brief = await getBrief(id)
 
     if (!brief) {
         notFound()

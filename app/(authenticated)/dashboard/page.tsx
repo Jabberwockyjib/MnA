@@ -27,6 +27,75 @@ export default async function DashboardPage() {
 
     const activeDeal = deals?.[0]
 
+    // Fetch metrics if we have an active deal
+    let metrics = {
+        documentsToday: 0,
+        activityCount: 0,
+        blockersCount: 0,
+        workstreamsCount: 0,
+        teamMembersCount: 0,
+        totalDocuments: 0,
+    }
+
+    if (activeDeal) {
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterdayISO = yesterday.toISOString()
+
+        // Fetch all metrics in parallel
+        const [
+            documentsResult,
+            recentDocsResult,
+            recentEmailsResult,
+            blockersResult,
+            workstreamsResult,
+            teamResult,
+        ] = await Promise.all([
+            // Total documents
+            supabase
+                .from('documents')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id),
+            // Documents in last 24 hours
+            supabase
+                .from('documents')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id)
+                .gte('created_at', yesterdayISO),
+            // Emails in last 24 hours
+            supabase
+                .from('emails')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id)
+                .gte('created_at', yesterdayISO),
+            // Active blockers
+            supabase
+                .from('emails')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id)
+                .eq('is_blocker', true),
+            // Workstreams
+            supabase
+                .from('workstreams')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id),
+            // Team members
+            supabase
+                .from('deal_members')
+                .select('id', { count: 'exact', head: true })
+                .eq('deal_id', activeDeal.id),
+        ])
+
+        metrics = {
+            totalDocuments: documentsResult.count || 0,
+            documentsToday: recentDocsResult.count || 0,
+            activityCount: (recentDocsResult.count || 0) + (recentEmailsResult.count || 0),
+            blockersCount: blockersResult.count || 0,
+            workstreamsCount: workstreamsResult.count || 0,
+            teamMembersCount: teamResult.count || 0,
+        }
+    }
+
     if (!activeDeal) {
         // Empty State
         return (
@@ -109,7 +178,7 @@ export default async function DashboardPage() {
                         </div>
                         <div className="space-y-1">
                             <div className="text-3xl font-mono font-semibold">
-                                0
+                                {metrics.documentsToday}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 Last 24 hours
@@ -129,7 +198,7 @@ export default async function DashboardPage() {
                         </div>
                         <div className="space-y-1">
                             <div className="text-3xl font-mono font-semibold">
-                                0
+                                {metrics.activityCount}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 Changes detected
@@ -145,11 +214,11 @@ export default async function DashboardPage() {
                             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
                                 Blockers
                             </span>
-                            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                            <AlertTriangle className={`h-4 w-4 ${metrics.blockersCount > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
                         </div>
                         <div className="space-y-1">
-                            <div className="text-3xl font-mono font-semibold text-success">
-                                0
+                            <div className={`text-3xl font-mono font-semibold ${metrics.blockersCount > 0 ? 'text-destructive' : 'text-success'}`}>
+                                {metrics.blockersCount}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 Requiring attention
@@ -187,15 +256,15 @@ export default async function DashboardPage() {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Workstreams</span>
-                                <span className="font-mono font-semibold">0</span>
+                                <span className="font-mono font-semibold">{metrics.workstreamsCount}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Team Members</span>
-                                <span className="font-mono font-semibold">0</span>
+                                <span className="font-mono font-semibold">{metrics.teamMembersCount}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Total Documents</span>
-                                <span className="font-mono font-semibold">0</span>
+                                <span className="font-mono font-semibold">{metrics.totalDocuments}</span>
                             </div>
                         </div>
                     </div>
