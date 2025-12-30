@@ -43,9 +43,11 @@ This repository has access to the following MCP servers when working with Claude
 
 ## Development Commands
 
+**IMPORTANT**: Always run the dev server on port 3011 - this matches the Google OAuth redirect URI configured in Google Cloud Console.
+
 ```bash
 # Development
-npm run dev              # Start Next.js dev server on localhost:3000
+npm run dev -- -p 3011   # Start Next.js dev server on localhost:3011 (required for Google OAuth)
 
 # Production build
 npm run build            # Build Next.js app for production

@@ -15,13 +15,14 @@
 import { google } from 'googleapis'
 import { OAuth2Client } from 'google-auth-library'
 
+// Note: gmail.readonly includes metadata access AND search capability
+// drive.readonly includes metadata access
+// Using the broader scopes to avoid permission issues
 const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/drive.readonly',
-  'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.metadata',
 ]
 
 export function createOAuth2Client(): OAuth2Client {

@@ -16,9 +16,9 @@ const REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL
     : 'http://localhost:3000/api/oauth/gmail/callback'
 
 // Gmail-specific scopes
+// Note: gmail.readonly includes metadata access AND search capability
 const SCOPES = [
     'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.metadata',
 ]
 
 /**
