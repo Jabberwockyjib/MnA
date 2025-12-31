@@ -22,9 +22,9 @@ export async function processEmail(job: Job<EmailProcessingJobData>) {
     try {
         await job.updateProgress(10)
 
-        // Fetch email from database
+        // Fetch email from database (communications table for Gmail/Outlook)
         const { data: email, error } = await getSupabase()
-            .from('emails')
+            .from('communications')
             .select('*')
             .eq('id', emailId)
             .single()
@@ -66,7 +66,7 @@ interface EmailRecord {
     thread_id?: string
     subject?: string
     sender?: string
-    snippet?: string
+    body?: string  // communications table uses 'body' not 'snippet'
     sentiment?: string
     is_blocker?: boolean
     received_at?: string
@@ -78,13 +78,13 @@ async function processSentimentAnalysis(email: EmailRecord) {
 
     const analysis = await analyzeEmail(
         email.subject || '',
-        email.snippet || '',
+        email.body || '',
         email.sender || ''
     )
 
     // Update email with sentiment analysis
     const { error } = await getSupabase()
-        .from('emails')
+        .from('communications')
         .update({
             sentiment: analysis.sentiment,
             is_blocker: analysis.isBlocker,
@@ -112,13 +112,13 @@ async function processBlockerDetection(email: EmailRecord) {
         // No thread, analyze single email
         const analysis = await analyzeEmail(
             email.subject || '',
-            email.snippet || '',
+            email.body || '',
             email.sender || ''
         )
 
         // Update email
         const { error } = await getSupabase()
-            .from('emails')
+            .from('communications')
             .update({
                 is_blocker: analysis.isBlocker,
                 sentiment: analysis.isBlocker ? 'blocker' : analysis.sentiment,
@@ -137,7 +137,7 @@ async function processBlockerDetection(email: EmailRecord) {
 
     // Fetch thread emails
     const { data: threadEmails, error: threadError } = await getSupabase()
-        .from('emails')
+        .from('communications')
         .select('*')
         .eq('thread_id', email.thread_id)
         .order('received_at', { ascending: true })
@@ -151,7 +151,7 @@ async function processBlockerDetection(email: EmailRecord) {
     const threadData = threadEmails.map(e => ({
         subject: e.subject || '',
         sender: e.sender || '',
-        snippet: e.snippet || '',
+        snippet: e.body || '',  // communications uses 'body'
         date: e.received_at || '',
     }))
 
@@ -160,7 +160,7 @@ async function processBlockerDetection(email: EmailRecord) {
     // Update the original email with blocker info
     if (blockerInfo.hasBlocker) {
         const { error } = await getSupabase()
-            .from('emails')
+            .from('communications')
             .update({
                 is_blocker: true,
                 sentiment: 'blocker',

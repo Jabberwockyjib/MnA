@@ -173,7 +173,7 @@ async function syncGmail(dealId: string, syncType: string) {
 
     // Get search configuration from connection
     const config = connection.configuration || {}
-    const labelIds = config.labelIds as string[] | undefined
+    const labelNames = config.labelNames as string[] | undefined
     const keywords = config.keywords as string[] | undefined
     const participants = config.participants as string[] | undefined
     const afterDate = config.afterDate
@@ -181,10 +181,11 @@ async function syncGmail(dealId: string, syncType: string) {
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Default: last 30 days
 
     // Build search query with label filter if configured
+    // Note: Gmail search uses label names, not IDs
     let searchQuery = buildDealSearchQuery(keywords, participants, afterDate)
-    if (labelIds && labelIds.length > 0) {
-        // Add label filter to query
-        const labelQuery = labelIds.map(id => `label:${id}`).join(' OR ')
+    if (labelNames && labelNames.length > 0) {
+        // Add label filter to query using label names
+        const labelQuery = labelNames.map(name => `label:${name}`).join(' OR ')
         searchQuery = searchQuery ? `(${searchQuery}) AND (${labelQuery})` : labelQuery
     }
 
