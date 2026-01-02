@@ -1,89 +1,44 @@
-# Docker Compose for DealPulse
+# Docker Compose for DealPulse - Traefik Infrastructure Standard
+# =============================================================================
+# IMPORTANT: This setup follows the dev/infra standards:
+# - No direct port binding (except Traefik owns 80/443)
+# - All routing via Traefik hostnames
+# - App runs on host with `npm run dev`, not containerized
+#
+# Required /etc/hosts entries:
+#   127.0.0.1 dealpulse.local
+#   127.0.0.1 api.dealpulse.local
+#   127.0.0.1 studio.dealpulse.local
+#
+# Start: docker compose up -d
+# Dev:   npm run dev -- -p 3011 (separate terminal)
+# =============================================================================
+
+networks:
+  traefik_net:
+    external: true
+  dealpulse_net:
+    name: dealpulse_net
+
+volumes:
+  dealpulse_db_data:
+  dealpulse_storage_data:
+  dealpulse_redis_data:
+
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      RUNNING_IN_DOCKER: "true"
-    networks:
-      - mna_network
-    develop:
-      watch:
-        - action: sync
-          path: ./app
-          target: /app/app
-        - action: sync
-          path: ./public
-          target: /app/public
-        - action: rebuild
-          path: package.json
-
-  # Supabase Services (Simplified for Dev/VPS)
-  # Database
-  db:
-    image: supabase/postgres:15.1.1.2
-    container_name: mna-db
-    networks:
-      - mna_network
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXP: 3600
-    ports:
-      - "54342:5432"
-    volumes:
-      - mna_db_data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d/mna-migrations:ro
-      - ./supabase/docker-init/00-configure-auth.sh:/docker-entrypoint-initdb.d/00-configure-auth.sh:ro
-
-  # Studio (Dashboard)
-  studio:
-    image: supabase/studio:latest
-    container_name: mna-studio
-    networks:
-      - mna_network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:3000/api/profile || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: http://localhost:8025
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-    ports:
-      - "54343:3000"
-    depends_on:
-      db:
-        condition: service_healthy
-      meta:
-        condition: service_healthy
-
-  # Kong (API Gateway)
+  # -------------------------
+  # Supabase API Gateway (Kong)
+  # -------------------------
   kong:
     image: kong:2.8.1
-    container_name: mna-kong
+    container_name: dealpulse-kong
     networks:
-      - mna_network
+      - dealpulse_net
+      - traefik_net
     restart: unless-stopped
-    ports:
-      - "8025:8000"
-      - "8458:8443"
+    expose:
+      - "8000"
+      - "8443"
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
@@ -96,27 +51,98 @@ services:
       - rest
       - realtime
       - storage
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dealpulse-api.rule=Host(`api.dealpulse.local`)"
+      - "traefik.http.routers.dealpulse-api.entrypoints=web"
+      - "traefik.http.services.dealpulse-api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=traefik_net"
 
+  # -------------------------
+  # PostgreSQL Database (NO HOST PORTS)
+  # -------------------------
+  db:
+    image: supabase/postgres:15.1.1.2
+    container_name: dealpulse-db
+    networks:
+      - dealpulse_net
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - dealpulse_db_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d/mna-migrations:ro
+      - ./supabase/docker-init/00-configure-auth.sh:/docker-entrypoint-initdb.d/00-configure-auth.sh:ro
+
+  # -------------------------
+  # Supabase Studio (Dashboard)
+  # -------------------------
+  studio:
+    image: supabase/studio:latest
+    container_name: dealpulse-studio
+    networks:
+      - dealpulse_net
+      - traefik_net
+    restart: unless-stopped
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:3000/api/profile || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: http://api.dealpulse.local
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      meta:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dealpulse-studio.rule=Host(`studio.dealpulse.local`)"
+      - "traefik.http.routers.dealpulse-studio.entrypoints=web"
+      - "traefik.http.services.dealpulse-studio.loadbalancer.server.port=3000"
+      - "traefik.docker.network=traefik_net"
+
+  # -------------------------
   # GoTrue (Auth)
+  # -------------------------
   auth:
     image: supabase/gotrue:v2.132.3
-    container_name: mna-auth
+    container_name: dealpulse-auth
     networks:
-      - mna_network
+      - dealpulse_net
     env_file:
       - .env
+    expose:
+      - "9999"
     healthcheck:
-      test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:9999/health || exit 1" ]
+      test: ["CMD-SHELL", "wget --no-verbose --spider --tries=1 --timeout=5 http://localhost:9999/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: http://localhost:8025
+      API_EXTERNAL_URL: http://api.dealpulse.local
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
-      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_SITE_URL: http://dealpulse.local
       GOTRUE_URI_ALLOW_LIST: "*"
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
@@ -127,19 +153,23 @@ services:
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: "true"
       GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: http://localhost:8025/auth/v1/callback
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: http://api.dealpulse.local/auth/v1/callback
     depends_on:
       db:
         condition: service_healthy
 
+  # -------------------------
   # PostgREST (API)
+  # -------------------------
   rest:
     image: postgrest/postgrest:v12.0.2
-    container_name: mna-rest
+    container_name: dealpulse-rest
     networks:
-      - mna_network
+      - dealpulse_net
     env_file:
       - .env
+    expose:
+      - "3000"
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
       PGRST_DB_SCHEMAS: public,storage,graphql_public
@@ -150,14 +180,18 @@ services:
       db:
         condition: service_healthy
 
+  # -------------------------
   # Realtime
+  # -------------------------
   realtime:
     image: supabase/realtime:v2.25.22
-    container_name: mna-realtime
+    container_name: dealpulse-realtime
     networks:
-      - mna_network
+      - dealpulse_net
     env_file:
       - .env
+    expose:
+      - "4000"
     environment:
       PORT: 4000
       DB_HOST: db
@@ -173,14 +207,18 @@ services:
       db:
         condition: service_healthy
 
+  # -------------------------
   # Storage
+  # -------------------------
   storage:
     image: supabase/storage-api:v1.0.3
-    container_name: mna-storage
+    container_name: dealpulse-storage
     networks:
-      - mna_network
+      - dealpulse_net
     env_file:
       - .env
+    expose:
+      - "5000"
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
@@ -194,17 +232,21 @@ services:
       REGION: stub
       GLOBAL_S3_BUCKET: stub
     volumes:
-      - mna_storage_data:/var/lib/storage
+      - dealpulse_storage_data:/var/lib/storage
     depends_on:
       db:
         condition: service_healthy
 
+  # -------------------------
   # Meta (Postgres Management API)
+  # -------------------------
   meta:
     image: supabase/postgres-meta:v0.80.0
-    container_name: mna-meta
+    container_name: dealpulse-meta
     networks:
-      - mna_network
+      - dealpulse_net
+    expose:
+      - "8080"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 10s
@@ -218,17 +260,19 @@ services:
       db:
         condition: service_healthy
 
-  # Redis (Job Queue)
+  # -------------------------
+  # Redis (Job Queue) - Internal only
+  # -------------------------
   redis:
     image: redis:7-alpine
-    container_name: mna-redis
+    container_name: dealpulse-redis
     networks:
-      - mna_network
+      - dealpulse_net
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
-      - mna_redis_data:/data
+      - dealpulse_redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -236,14 +280,16 @@ services:
       timeout: 5s
       retries: 5
 
+  # -------------------------
   # Background Workers
+  # -------------------------
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mna-worker
+    container_name: dealpulse-worker
     networks:
-      - mna_network
+      - dealpulse_net
     command: npm run worker
     env_file:
       - .env
@@ -251,9 +297,13 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: development
+      # Internal URLs for Docker-to-Docker communication
+      SUPABASE_INTERNAL_URL: http://kong:8000
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     develop:
       watch:
         - action: sync
@@ -264,12 +314,3 @@ services:
           target: /app/lib
         - action: rebuild
           path: package.json
-
-networks:
-  mna_network:
-    driver: bridge
-
-volumes:
-  mna_db_data:
-  mna_storage_data:
-  mna_redis_data:

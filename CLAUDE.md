@@ -43,12 +43,47 @@ This repository has access to the following MCP servers when working with Claude
 
 ## Development Commands
 
-**IMPORTANT**: Always run the dev server on port 3011 - this matches the Google OAuth redirect URI configured in Google Cloud Console.
+This project uses **Traefik** for routing per the dev/infra standards. No ports are exposed directly - all traffic routes through Traefik hostnames.
+
+### One-Time Setup
+
+1. **Add hosts entries** (run once):
+   ```bash
+   # Add to /etc/hosts
+   127.0.0.1 dealpulse.local
+   127.0.0.1 api.dealpulse.local
+   127.0.0.1 studio.dealpulse.local
+   ```
+
+2. **Ensure Traefik is running** (from ~/dev/infra/traefik):
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Ensure traefik_net exists**:
+   ```bash
+   docker network create traefik_net  # Only if not already created
+   ```
+
+### Daily Development
 
 ```bash
-# Development
-npm run dev -- -p 3011   # Start Next.js dev server on localhost:3011 (required for Google OAuth)
+# Terminal 1: Start Supabase stack
+docker compose up -d
 
+# Terminal 2: Start Next.js dev server (runs on host for hot reload)
+npm run dev -- -p 3011
+
+# Access via Traefik hostnames:
+# - App:            http://dealpulse.local
+# - Supabase API:   http://api.dealpulse.local
+# - Supabase Studio: http://studio.dealpulse.local
+# - Traefik Dashboard: http://traefik.local (for debugging routes)
+```
+
+### Other Commands
+
+```bash
 # Production build
 npm run build            # Build Next.js app for production
 npm start                # Start production server
@@ -56,15 +91,17 @@ npm start                # Start production server
 # Linting
 npm run lint             # Run ESLint
 
-# Docker development (full stack with Supabase)
-docker compose up        # Start all services
-                        # - App: http://localhost:3005
-                        # - Supabase Studio: http://localhost:54323
-                        # - Supabase API: http://localhost:8005
-                        # - PostgreSQL: localhost:54322
-
+# Stop services
 docker compose down      # Stop all services
 ```
+
+### Troubleshooting
+
+If routes don't work:
+1. Is Traefik running? `docker ps | grep traefik`
+2. Are containers on traefik_net? `docker network inspect traefik_net`
+3. Is the dev server running on port 3011?
+4. Check Traefik dashboard at http://traefik.local
 
 ## Tech Stack
 
@@ -114,8 +151,9 @@ app/
 - Server-side: `lib/supabase/server.ts` using `createServerClient` with Next.js cookies
 
 **Environment Variables Required:**
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL` - Browser-facing API URL (http://api.dealpulse.local)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Public anonymous key
+- `SUPABASE_INTERNAL_URL` - Docker internal URL (http://kong:8000) for workers
 
 ### Database Schema
 
@@ -180,14 +218,34 @@ Do not implement features outside these core areas without explicit approval:
 
 ## Docker Deployment
 
+### Traefik Infrastructure
+
+This project follows the dev/infra Traefik standards:
+- **No direct port binding** - All routing via Traefik hostnames
+- **App runs on host** - Next.js dev server runs natively for hot reload
+- **Supabase in Docker** - Full stack containerized with internal networking
+- **External traefik_net** - Shared network for Traefik routing
+
+### Production Builds
+
 The app uses multi-stage Docker builds (see `Dockerfile`):
 1. **deps**: Install dependencies with `npm ci`
 2. **builder**: Build Next.js app with standalone output
 3. **runner**: Production image with minimal footprint
 
-The `compose.yaml` orchestrates:
-- Next.js app container
-- Full Supabase stack (PostgreSQL, Auth, Storage, Realtime, Kong, Studio, Meta)
+### compose.yaml Services
+
+The `compose.yaml` orchestrates the Supabase stack:
+- **kong** - API Gateway (routed via `api.dealpulse.local`)
+- **db** - PostgreSQL (internal only, no host port)
+- **studio** - Dashboard (routed via `studio.dealpulse.local`)
+- **auth** - GoTrue authentication
+- **rest** - PostgREST API
+- **realtime** - Real-time subscriptions
+- **storage** - File storage
+- **meta** - Postgres management
+- **redis** - Job queue (internal only)
+- **worker** - Background job processor
 
 ## Important Files
 
