@@ -153,7 +153,8 @@ services:
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: "true"
       GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: http://api.dealpulse.local/auth/v1/callback
+      # Google OAuth requires localhost (doesn't allow .local domains)
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: http://localhost/auth/v1/callback
     depends_on:
       db:
         condition: service_healthy
